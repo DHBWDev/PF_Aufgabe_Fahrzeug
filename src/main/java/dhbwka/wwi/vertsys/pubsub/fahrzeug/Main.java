@@ -78,7 +78,7 @@ public class Main {
         // werden.
         StatusMessage sm = new StatusMessage();
         sm.type = StatusType.VEHICLE_READY;
-        
+        //test
         
         // TODO: Thread starten, der jede Sekunde die aktuellen Sensorwerte
         // des Fahrzeugs ermittelt und verschickt. Die Sensordaten sollen
