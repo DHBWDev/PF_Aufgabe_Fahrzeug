@@ -9,16 +9,20 @@
  */
 package dhbwka.wwi.vertsys.pubsub.fahrzeug;
 
-import com.sun.corba.se.impl.protocol.giopmsgheaders.Message;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
+import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
 /**
@@ -64,27 +68,95 @@ public class Main {
         // LastWill-Nachricht gesendet wird, die auf den Verbindungsabbruch
         // hinweist. Die Nachricht soll eine "StatusMessage" sein, bei der das
         // Feld "type" auf "StatusType.CONNECTION_LOST" gesetzt ist.
-        
-        //StatusMessage lastWillMessage = new StatusMessage();
-        //lastWillMessage.type = StatusType.CONNECTION_LOST;
-        
+        StatusMessage lastWillMessage = new StatusMessage();
+        lastWillMessage.type = StatusType.CONNECTION_LOST;
+
         // Die Nachricht muss dem MqttConnectOptions-Objekt übergeben werden
         // und soll an das Topic Utils.MQTT_TOPIC_NAME gesendet werden.
         // TODO: Verbindung zum MQTT-Broker herstellen.
-//        MqttConnectOptions options = new MqttConnectOptions();
-//        options.setCleanSession(true);
-//        options.setWill(Utils.MQTT_TOPIC_NAME, lastWillMessage.toJson(), index, true);
+        MqttConnectOptions options = new MqttConnectOptions();
+        options.setCleanSession(true);
+        options.setWill(Utils.MQTT_TOPIC_NAME, lastWillMessage.toJson(), index, true);
+
+        String clientId = "Fahrzeug-Aufgabe-" + System.currentTimeMillis();
+
+        System.out.println("Client ID: " + clientId);
+        System.out.println("Starte Empfang. Drücke ENTER zum Beenden.");
+        System.out.println();
+
+        MqttClient client = new MqttClient(mqttAddress, clientId);
+        client.connect(options);
+
         // TODO: Statusmeldung mit "type" = "StatusType.VEHICLE_READY" senden.
         // Die Nachricht soll soll an das Topic Utils.MQTT_TOPIC_NAME gesendet
         // werden.
-//        StatusMessage sm = new StatusMessage();
-//        sm.type = StatusType.VEHICLE_READY;
-        //test
+        StatusMessage sm = new StatusMessage();
+        sm.type = StatusType.VEHICLE_READY;
+
+        if (client != null && client.isConnected()) {
+            MqttMessage message = new MqttMessage(sm.toJson());
+            message.setQos(2);
+            client.publish(Utils.MQTT_TOPIC_NAME, message);
+        }
+
         // TODO: Thread starten, der jede Sekunde die aktuellen Sensorwerte
         // des Fahrzeugs ermittelt und verschickt. Die Sensordaten sollen
-        // an das Topic Utils.MQTT_TOPIC_NAME + "/" + vehicleId gesendet werden.
+        // an das Topic Utils.MQTT_TOPIC_NAME + "/" + vehicleId gesendet werden.7
+        //static 
         Vehicle vehicle = new Vehicle(vehicleId, waypoints);
         vehicle.startVehicle();
+
+        Timer timer = new Timer();
+
+        TimerTask tt = new TimerTask(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    while (true) {
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException ex) {
+                        }
+
+                        if (client != null && client.isConnected()) {
+                            MqttMessage message = new MqttMessage();
+
+                            message.setQos(2);
+
+                            client.publish(Utils.MQTT_TOPIC_NAME + "/" + vehicleId, message);
+
+                        }
+                    }
+                } catch (MqttException ex) {
+                    Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+        });
+
+        TimerTask tt = new TimerTask(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    while (true) {
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException ex) {
+                        }
+
+                        if (client != null && client.isConnected()) {
+                            MqttMessage message = new MqttMessage();
+
+                            message.setQos(2);
+
+                            client.publish(Utils.MQTT_TOPIC_NAME + "/" + vehicleId, message);
+
+                        }
+                    }
+                } catch (MqttException ex) {
+                    Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+        });
 
         // Warten, bis das Programm beendet werden soll
         Utils.fromKeyboard.readLine();
