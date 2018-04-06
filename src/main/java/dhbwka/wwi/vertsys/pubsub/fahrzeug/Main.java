@@ -129,6 +129,7 @@ public class Main {
         }
 
         Timer timer = new Timer();
+        System.out.println("yolo");
 
         timer.schedule(new TimerT(), 0, 1000);
 
