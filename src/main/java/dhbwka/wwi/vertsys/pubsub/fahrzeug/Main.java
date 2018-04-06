@@ -106,7 +106,22 @@ public class Main {
         Vehicle vehicle = new Vehicle(vehicleId, waypoints);
         vehicle.startVehicle();
 
+        class TimerT extends TimerTask {
+
+            public TimerT() {
+            }
+
+            @Override
+            public void run() {
+                System.out.println("llol");
+            }
+        }
+
         Timer timer = new Timer();
+        
+        timer.schedule(new TimerT(), 0 ,1000);
+        
+        
 
         TimerTask tt = new TimerTask(new Runnable() {
             @Override
