@@ -70,13 +70,14 @@ public class Main {
         // Feld "type" auf "StatusType.CONNECTION_LOST" gesetzt ist.
         StatusMessage lastWillMessage = new StatusMessage();
         lastWillMessage.type = StatusType.CONNECTION_LOST;
+        lastWillMessage.vehicleId = vehicleId;
 
         // Die Nachricht muss dem MqttConnectOptions-Objekt übergeben werden
         // und soll an das Topic Utils.MQTT_TOPIC_NAME gesendet werden.
         // TODO: Verbindung zum MQTT-Broker herstellen.
         MqttConnectOptions options = new MqttConnectOptions();
         options.setCleanSession(true);
-        options.setWill(Utils.MQTT_TOPIC_NAME, lastWillMessage.toJson(), index, true);
+        options.setWill(Utils.MQTT_TOPIC_NAME, lastWillMessage.toJson(), 2, false);
 
         String clientId = "Fahrzeug-Aufgabe-" + System.currentTimeMillis();
 
@@ -92,11 +93,12 @@ public class Main {
         // werden.
         StatusMessage sm = new StatusMessage();
         sm.type = StatusType.VEHICLE_READY;
+        sm.vehicleId = vehicleId;
 
         if (client != null && client.isConnected()) {
             MqttMessage message = new MqttMessage(sm.toJson());
             message.setQos(2);
-            client.publish(Utils.MQTT_TOPIC_NAME, message);
+            client.publish(Utils.MQTT_TOPIC_NAME + "/", sm.toJson(), 2, false);
         }
 
         // TODO: Thread starten, der jede Sekunde die aktuellen Sensorwerte
@@ -129,7 +131,6 @@ public class Main {
         }
 
         Timer timer = new Timer();
-        System.out.println("yolo");
 
         timer.schedule(new TimerT(), 0, 1000);
 
@@ -137,12 +138,19 @@ public class Main {
         Utils.fromKeyboard.readLine();
 
         vehicle.stopVehicle();
-
+        
+        timer.cancel();
+        
         // TODO: Oben vorbereitete LastWill-Nachricht hier manuell versenden,
         // da sie bei einem regulären Verbindungsende nicht automatisch
         // verschickt wird.
         // Anschließend die Verbindung trennen und den oben gestarteten Thread
         // beenden, falls es kein Daemon-Thread ist.
+        
+        client.publish(Utils.MQTT_TOPIC_NAME, lastWillMessage.toJson(), 2 , false);
+        
+        client.disconnect();
+
     }
 
     /**
